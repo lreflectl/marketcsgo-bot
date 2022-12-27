@@ -8,6 +8,8 @@ class ItemOnSale:
     price: int
     currency: str
     market_hash_name: str
+    user_min_price = 0
+    user_target_price = 0
 
     def __repr__(self):
         return f'ItemOnSale(id:{self.item_id}, {self.market_hash_name},' \

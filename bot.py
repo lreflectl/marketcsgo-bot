@@ -14,12 +14,12 @@ class MarketBot:
     def update_items(self):
         self.items = get_items_on_sale_api()
 
-    def update_item_price(self, index_in_items, min_price, target_price):
+    def update_item_price(self, item_idx_in_items, min_price, target_price):
         if not self.items:
             print('FAIL - item list empty')
             return
 
-        item = self.items[index_in_items]
+        item = self.items[item_idx_in_items]
         lowest_price_on_market = get_item_price_by_hash_name_api(item.market_hash_name)
 
         new_price = price_update_policy(
@@ -43,38 +43,41 @@ class MarketBot:
         else:
             print('FAIL -', item)
 
-    def update_all_item_prices_in_list(self, desired_prices: dict[str, tuple[int, int]]):
+    def update_all_item_prices_in_list(self):
         if not self.items:
             print('FAIL - item list empty')
             return
+        for idx, item in enumerate(self.items):
+            if item.user_target_price == 0 or item.user_min_price == 0:
+                print('PASS (not set) -', item)
+                continue
+            self.update_item_price(idx, item.user_min_price, item.user_target_price)
 
-        for idx in range(len(self.items)):
-            item_id = self.items[idx].item_id
-            self.update_item_price(idx, *desired_prices[item_id])
-
-    def set_target_prices_for_items(self, desired_prices: dict[str, tuple[int, int]]):
+    def set_target_prices_for_items(self):
         if not self.items:
             print('FAIL - item list empty')
             return
-
         for item in self.items:
-            status = set_price_api(item.item_id, desired_prices[item.item_id][1])
+            if item.user_target_price == 0 or item.user_min_price == 0:
+                print('PASS (not set) -', item)
+                continue
+            status = set_price_api(item.item_id, item.user_target_price)
             if status:
-                item.price = desired_prices[item.item_id][1]
+                item.price = item.user_target_price
                 print('OK -', item)
             else:
                 print('FAIL -', item)
 
 
-def price_update_loop(market_bot: MarketBot, desired_prices: dict[str, tuple[int, int]], stop_event: Event):
+def price_update_loop(market_bot: MarketBot, stop_event: Event):
     timer = 0
     while True:
         market_bot.update_items()
         print(market_bot.items)
-        market_bot.update_all_item_prices_in_list(desired_prices)
+        market_bot.update_all_item_prices_in_list()
 
         if timer == 60:
-            market_bot.set_target_prices_for_items(desired_prices)  # every minute reset prices to target
+            market_bot.set_target_prices_for_items()  # every minute reset prices to the target prices
             timer = 0
         timer += 1
 
@@ -87,11 +90,8 @@ def price_update_loop(market_bot: MarketBot, desired_prices: dict[str, tuple[int
 
 def main():
     bot = MarketBot()
-    desired_prices = {
-        '3899439064': (800, 1400),
-    }
     stop_event = Event()
-    worker_thread = Thread(target=price_update_loop, args=(bot, desired_prices, stop_event))
+    worker_thread = Thread(target=price_update_loop, args=(bot, stop_event))
     worker_thread.start()
 
     user_input = input('Press Enter to stop price update loop:\n')
