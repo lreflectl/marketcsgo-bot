@@ -69,7 +69,9 @@ class MarketBot:
                 print('FAIL -', item)
 
 
-def price_update_loop(market_bot: MarketBot, stop_event: Event):
+def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event):
+    stop_event.clear()
+    finish_event.clear()
     timer = 0
     while True:
         market_bot.update_items()
@@ -83,6 +85,7 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event):
 
         if stop_event.is_set():
             print('Stopping price update loop...')
+            finish_event.set()
             break
 
         sleep(5)  # Seconds to sleep on each loop iteration
