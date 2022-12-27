@@ -2,14 +2,13 @@ from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
 from api_requests import get_item_price_by_hash_name_api
 from policies import price_update_policy
-from data_structures import ItemOnSale
 from threading import Event, Thread
 from time import sleep
 
 
 class MarketBot:
     def __init__(self):
-        self.items = [ItemOnSale]
+        self.items = []
 
     def update_items(self):
         self.items = get_items_on_sale_api()
