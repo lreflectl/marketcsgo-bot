@@ -13,4 +13,5 @@ class ItemOnSale:
 
     def __repr__(self):
         return f'ItemOnSale(id:{self.item_id}, {self.market_hash_name},' \
-               f' {self.price/1000:.3f} {self.currency}, pos:{self.position})'
+               f' {self.price/1000:.3f} {self.currency}, pos:{self.position} ' \
+               f' min:{self.user_min_price}, target:{self.user_target_price})'

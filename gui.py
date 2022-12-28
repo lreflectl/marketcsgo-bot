@@ -11,9 +11,10 @@ class MarketCSGOBotApp(ctk.CTk):
         self.finish_event = Event()
 
         self.title('MarketCSGO Bot')
-        self.geometry(f'{800}x{400}')
+        self.geometry(f'{900}x{600}')
+        self.protocol('WM_DELETE_WINDOW', self.on_closing)  # call on_closing() when app gets closed
 
-        self.items_frame = ctk.CTkFrame(self, width=800, height=330, corner_radius=0)
+        self.items_frame = ctk.CTkFrame(self, width=900, height=530, corner_radius=0)
         self.items_frame.grid(row=0, column=0, columnspan=3)
         self.items_frame.grid_propagate(0)
 
@@ -32,7 +33,7 @@ class MarketCSGOBotApp(ctk.CTk):
 
         self.item_widgets = []
 
-        self.refresh_list_button = ctk.CTkButton(self, command=self.refresh_item_list, text='Refresh items')
+        self.refresh_list_button = ctk.CTkButton(self, command=self.refresh_item_list, text='Save and refresh items')
         self.refresh_list_button.grid(row=1, column=2, padx=20, pady=20)
 
     def start_loop_thread(self):
@@ -54,27 +55,48 @@ class MarketCSGOBotApp(ctk.CTk):
 
         self.stop_loop_button.configure(state='disabled')
 
+    def save_input_prices(self):
+        if self.bot.items and self.item_widgets:
+            for idx, item in enumerate(self.bot.items):
+                entry_min_text = self.item_widgets[idx][1].get().strip()
+                if entry_min_text.isdigit():
+                    item.user_min_price = int(float(entry_min_text))
+                entry_target_text = self.item_widgets[idx][2].get().strip()
+                if entry_target_text.isdigit():
+                    item.user_target_price = int(float(entry_target_text))
+
     def refresh_item_list(self):
+        self.save_input_prices()
+
         for label, min_entry, target_entry in self.item_widgets:
             label.grid_forget()
             min_entry.grid_forget()
             target_entry.grid_forget()
+        self.item_widgets.clear()
 
         if not self.bot.items:
-            label = ctk.CTkLabel(self.items_frame, text='There is no your items for sale right now')
-            label.grid(padx=20, pady=20)
-            self.item_widgets.append((label, label, label))
             return
 
         for idx, item in enumerate(self.bot.items, 1):
             item_info_text = repr(item)[11:-1]  # Limit title size
             label = ctk.CTkLabel(self.items_frame, text=item_info_text)
             label.grid(row=idx, column=0, padx=20, pady=2)
-            min_price_entry = ctk.CTkEntry(self.items_frame, width=60, placeholder_text='min')
+
+            min_price_entry = ctk.CTkEntry(self.items_frame, width=60)
+            min_price_entry.insert(0, str(item.user_min_price))
             min_price_entry.grid(row=idx, column=1, padx=20, pady=2)
-            target_price_entry = ctk.CTkEntry(self.items_frame, width=60, placeholder_text='target')
+
+            target_price_entry = ctk.CTkEntry(self.items_frame, width=60)
+            target_price_entry.insert(0, str(item.user_target_price))
             target_price_entry.grid(row=idx, column=2, padx=20, pady=2)
+
             self.item_widgets.append((label, min_price_entry, target_price_entry))
+
+    # Wait before current iteration completes, then destroy
+    def on_closing(self, event=0):
+        self.stop_event.set()
+        self.finish_event.wait()
+        self.destroy()
 
 
 def main():

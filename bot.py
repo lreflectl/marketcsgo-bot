@@ -11,7 +11,24 @@ class MarketBot:
         self.items = []
 
     def update_items(self):
-        self.items = get_items_on_sale_api()
+        fresh_items_dict = {item.item_id: item for item in get_items_on_sale_api()}
+
+        if not self.items:
+            self.items.extend(fresh_items_dict.values())
+            return
+
+        updated_items = []
+        for old_item in self.items:
+            new_item = fresh_items_dict.pop(old_item.item_id, None)
+            # if new item exists in items list, save min and target price
+            # but if there is no old item in new, then don't save it
+            if new_item is not None:
+                new_item.user_min_price = old_item.user_min_price
+                new_item.user_target_price = old_item.user_target_price
+                updated_items.append(new_item)
+        # add items that were newly added and weren't in list
+        for new_item in fresh_items_dict.values():
+            updated_items.append(new_item)
 
     def update_item_price(self, item_idx_in_items, min_price, target_price):
         if not self.items:
@@ -87,13 +104,14 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
             finish_event.set()
             break
 
-        sleep(5)  # Seconds to sleep on each loop iteration
+        sleep(2)  # Seconds to sleep on each loop iteration
 
 
 def main():
     bot = MarketBot()
     stop_event = Event()
-    worker_thread = Thread(target=price_update_loop, args=(bot, stop_event))
+    finish_event = Event()
+    worker_thread = Thread(target=price_update_loop, args=(bot, stop_event, finish_event))
     worker_thread.start()
 
     user_input = input('Press Enter to stop price update loop:\n')
