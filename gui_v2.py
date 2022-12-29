@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from bot import MarketBot, price_update_loop
 from threading import Thread, Event
+from prettytable import PrettyTable
 
 
 class MarketCSGOBotApp(ctk.CTk):
@@ -12,10 +13,10 @@ class MarketCSGOBotApp(ctk.CTk):
         self.finish_event.set()  # On app start update loop inactive, so finish is possible
 
         self.title('MarketCSGO Bot')
-        self.geometry(f'{900}x{390}')
+        self.geometry(f'{1000}x{390}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)  # call on_closing() when app gets closed
 
-        self.items_textbox = ctk.CTkTextbox(self, width=600, height=300)
+        self.items_textbox = ctk.CTkTextbox(self, width=700, height=300, font=('Consolas', 12))
         self.items_textbox.grid(row=0, column=0, columnspan=3, padx=20, pady=(20, 0))
 
         # ----- Control frame -----
@@ -85,7 +86,6 @@ class MarketCSGOBotApp(ctk.CTk):
                 return
 
             selected_item_id = select_text.split(':')[1]
-            print(selected_item_id)
             for item in self.bot.items:
                 if item.item_id == selected_item_id:
                     entry_min_text = self.min_price_entry.get().strip()
@@ -108,13 +108,19 @@ class MarketCSGOBotApp(ctk.CTk):
 
         self.update_item_menu()
 
-        item_list_text = ''
+        item_table = [['#', 'item_id', 'item title', 'current p.', 'pos', 'minimum', 'target']]
         for idx, item in enumerate(self.bot.items, 1):
-            item_text = repr(item)[11:-1]  # Limit title size
-            item_list_text += f'#{idx} ' + item_text + '\n'
+            title = str(item.market_hash_name[:32]).replace('★', '*') + ' '
+            position = f'n/l' if item.position == 0 else item.position
+            item_table.append([
+                idx, item.item_id, title, f'{item.price/1000:.3f} {item.currency}',
+                position, item.user_min_price, item.user_target_price
+            ])
+        pretty_table = PrettyTable(item_table[0])
+        pretty_table.add_rows(item_table[1:])
 
         self.items_textbox.delete('0.0', ctk.END)
-        self.items_textbox.insert('0.0', item_list_text)
+        self.items_textbox.insert('0.0', pretty_table.get_string())
 
     def item_menu_callback(self, choice):
         selected_item_id = choice.split(':')[1]
