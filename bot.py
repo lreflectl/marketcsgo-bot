@@ -51,6 +51,9 @@ class MarketBot:
         if new_price < min_price:
             print('Policy Error -', item)
             return
+        if target_price < min_price:
+            print('User input Error -', item)
+            return
 
         status = set_price_api(item.item_id, new_price)
         if status:
@@ -104,7 +107,7 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
             finish_event.set()
             break
 
-        sleep(2)  # Seconds to sleep on each loop iteration
+        sleep(3)  # Seconds to sleep on each loop iteration
 
 
 def main():

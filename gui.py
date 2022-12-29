@@ -9,6 +9,7 @@ class MarketCSGOBotApp(ctk.CTk):
         self.bot = MarketBot()
         self.stop_event = Event()
         self.finish_event = Event()
+        self.finish_event.set()  # On app start update loop inactive, so finish is possible
 
         self.title('MarketCSGO Bot')
         self.geometry(f'{900}x{600}')
@@ -95,7 +96,7 @@ class MarketCSGOBotApp(ctk.CTk):
     # Wait before current iteration completes, then destroy
     def on_closing(self, event=0):
         self.stop_event.set()
-        self.finish_event.wait()
+        self.finish_event.wait(timeout=5)
         self.destroy()
 
 
