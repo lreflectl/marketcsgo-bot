@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 from os import getenv
 from data_structures import ItemOnSale
 
+API_ITEM_STATUS = {
+    'ON_SALE': '1',
+    'NEED_TO_TRANSFER': '2',
+    'WAITING_FOR_TRANSFER': '3',
+    'READY_TO_RECEIVE': '4',
+}
+
 load_dotenv()
 sleep_after_request_secs = 0.3
 
@@ -28,13 +35,14 @@ def get_items_on_sale_api() -> list[ItemOnSale]:
 
     items = []
     for item in response_json['items']:
-        items.append(ItemOnSale(
-            item_id=item['item_id'],
-            position=item['position'],
-            price=int(item['price'] * 1000),  # convert price from float to int format
-            currency=item['currency'],
-            market_hash_name=item['market_hash_name'],
-        ))
+        if item['status'] == API_ITEM_STATUS['ON_SALE']:
+            items.append(ItemOnSale(
+                item_id=item['item_id'],
+                position=item['position'],
+                price=int(item['price'] * 1000),  # convert price from float to int format
+                currency=item['currency'],
+                market_hash_name=item['market_hash_name'],
+            ))
     return items
 
 
