@@ -12,9 +12,9 @@ class MarketBot:
 
     def update_items(self):
         fresh_items_dict = {item.item_id: item for item in get_items_on_sale_api()}
-
+        print(fresh_items_dict)
         if not self.items:
-            self.items.extend(fresh_items_dict.values())
+            self.items = fresh_items_dict.values()
             return
 
         updated_items = []
@@ -29,6 +29,8 @@ class MarketBot:
         # add items that were newly added and weren't in list
         for new_item in fresh_items_dict.values():
             updated_items.append(new_item)
+
+        self.items = updated_items
 
     def update_item_price(self, item_idx_in_items, min_price, target_price):
         if not self.items:

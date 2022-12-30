@@ -1,0 +1,2 @@
+Pyinstaller command: <br>
+pyinstaller --noconfirm --onedir --icon "images/bot_icon.png" --windowed --add-data "d:/py/marketcsgobot/venv/Lib/site-packages/customtkinter;customtkinter/"  "MarketBotApp.py"
