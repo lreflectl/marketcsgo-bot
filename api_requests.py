@@ -1,6 +1,6 @@
 import time
 
-from requests import get
+from requests import get, RequestException, Response
 from dotenv import load_dotenv
 from os import getenv
 from data_structures import ItemOnSale
@@ -13,21 +13,41 @@ API_ITEM_STATUS = {
 }
 
 load_dotenv()
-sleep_after_request_secs = 0.3
+
+
+def get_response_with_retries(request, max_retries) -> Response or None:
+    """ Return response or None if all retries fail. """
+    sleep_after_request_secs = 0.3
+    sleep_on_exception_retry = 1
+
+    for attempt in range(max_retries + 1):
+        try:
+            response = get(request)
+            time.sleep(sleep_after_request_secs)  # To not exceed limit of 5 requests/sec
+            return response
+        except RequestException as e:
+            # print('Error occurred while executing request:', e.response)
+            if attempt == max_retries:  # if it was last attempt
+                # print('Failed executing request.')
+                return
+            # print('Retrying ...')
+        time.sleep(sleep_on_exception_retry)  # Wait more if exception occurred
 
 
 def get_items_on_sale_api() -> list[ItemOnSale]:
+    """ Get items that on sale right now. Return empty list on failure or items list. """
     request = f'https://market.csgo.com/api/v2/items?key={getenv("SECRET_KEY")}'
-    response_json = get(request).json()
-    time.sleep(sleep_after_request_secs)  # To not exceed limit of 5 requests/sec
-
     max_retries = 5
-    while not response_json['success']:
-        response_json = get(request).json()
-        time.sleep(sleep_after_request_secs)
-        max_retries -= 1
-        if max_retries == 0:
-            return []
+
+    response = get_response_with_retries(request, max_retries)
+    if response is None:
+        print('Failed on getting items on sale. Max attempts exceeded.')
+        return []
+
+    response_json = response.json()
+    if not response_json['success']:
+        print('Server fail on getting items on sale.')
+        return []
 
     # If there is no items on sale
     if not response_json['items']:
@@ -43,38 +63,43 @@ def get_items_on_sale_api() -> list[ItemOnSale]:
                 currency=item['currency'],
                 market_hash_name=item['market_hash_name'],
             ))
+
     return items
 
 
 def set_price_api(item_id: str, price: int) -> bool:
+    """ Set price on item by its item_id. Return True if set, False on fail. """
     request = f'https://market.csgo.com/api/v2/set-price' \
               f'?key={getenv("SECRET_KEY")}&item_id={item_id}&price={price}&cur=USD'
-    response_json = get(request).json()
-    time.sleep(sleep_after_request_secs)  # To not exceed limit of 5 requests/sec
-
     max_retries = 5
-    while not response_json['success']:
-        response_json = get(request).json()
-        time.sleep(sleep_after_request_secs)
-        max_retries -= 1
-        if max_retries == 0:
-            return False
+
+    response = get_response_with_retries(request, max_retries)
+    if response is None:
+        print('Failed on setting price. Max attempts exceeded.')
+        return False
+
+    response_json = response.json()
+    if not response_json['success']:
+        print('Server fail on setting price.')
+        return False
+
     return True
 
 
 def get_item_price_by_hash_name_api(market_hash_name: str) -> int:
-    """Get minimum market price by hash_name. Return price or 0 on failure"""
+    """ Get minimum market price by hash_name. Return price or 0 on failure. """
     request = f'https://market.csgo.com/api/v2/prices/USD.json'
-    response_json = get(request).json()
-    time.sleep(sleep_after_request_secs)  # To not exceed limit of 5 requests/sec
-
     max_retries = 5
-    while not response_json['success']:
-        response_json = get(request).json()
-        time.sleep(sleep_after_request_secs)
-        max_retries -= 1
-        if max_retries == 0:
-            return 0
+
+    response = get_response_with_retries(request, max_retries)
+    if response is None:
+        print('Failed on getting price by name. Max attempts exceeded.')
+        return 0
+
+    response_json = response.json()
+    if not response_json['success']:
+        print('Server fail on getting price by name.')
+        return 0
 
     lowest_price = 0
     for item in response_json['items']:
