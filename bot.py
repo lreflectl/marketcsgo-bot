@@ -12,7 +12,6 @@ class MarketBot:
 
     def update_items(self):
         fresh_items_dict = {item.item_id: item for item in get_items_on_sale_api()}
-        print(fresh_items_dict)
         if not self.items:
             self.items = fresh_items_dict.values()
             return
