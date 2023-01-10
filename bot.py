@@ -1,6 +1,6 @@
 from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
-from api_requests import get_item_price_by_hash_name_api
+from api_requests import get_item_price_by_hash_name_v2_api
 from policies import price_update_policy
 from threading import Event, Thread
 from time import sleep
@@ -37,7 +37,7 @@ class MarketBot:
             return
 
         item = self.items[item_idx_in_items]
-        lowest_price_on_market = get_item_price_by_hash_name_api(item.market_hash_name)
+        lowest_price_on_market = get_item_price_by_hash_name_v2_api(item.market_hash_name)
 
         new_price = price_update_policy(
             current_price=item.price,

@@ -13,7 +13,7 @@ class MarketCSGOBotApp(ctk.CTk):
         self.finish_event.set()  # On app start update loop inactive, so finish is possible
 
         self.title('MarketCSGO Bot')
-        self.geometry(f'{1000}x{390}')
+        self.geometry(f'{980}x{390}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)  # call on_closing() when app gets closed
 
         self.items_textbox = ctk.CTkTextbox(self, width=700, height=300, font=('Consolas', 12))

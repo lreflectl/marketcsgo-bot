@@ -87,7 +87,7 @@ def set_price_api(item_id: str, price: int) -> bool:
 
 
 def get_item_price_by_hash_name_api(market_hash_name: str) -> int:
-    """ Get minimum market price by hash_name. Return price or 0 on failure. """
+    """ Deprecated, slow version. Get minimum market price by hash_name. Return price or 0 on failure. """
     request = f'https://market.csgo.com/api/v2/prices/USD.json'
     max_retries = 5
 
@@ -105,5 +105,39 @@ def get_item_price_by_hash_name_api(market_hash_name: str) -> int:
     for item in response_json['items']:
         if item['market_hash_name'] == market_hash_name:
             lowest_price = int(float(item['price']) * 1000)
+            print('lowest price from api v2 =', lowest_price)
 
     return lowest_price
+
+
+def get_item_price_by_hash_name_v2_api(market_hash_name: str) -> int:
+    """ Get minimum market price by hash_name. Return price or 0 on failure. """
+    request = f'https://market.csgo.com/api/v2/search-item-by-hash-name-specific' \
+              f'?key={getenv("SECRET_KEY")}&hash_name={market_hash_name}'
+    max_retries = 5
+
+    response = get_response_with_retries(request, max_retries)
+    if response is None:
+        print('Failed on getting price by name. Max attempts exceeded.')
+        return 0
+
+    response_json = response.json()
+    if not response_json['success']:
+        print('Server fail on getting price by name.')
+        return 0
+
+    lowest_price = 0
+    if response_json['data']:
+        lowest_price = response_json['data'][0]['price']
+        print('lowest price from api v2 =', lowest_price)
+
+    return lowest_price
+
+
+if __name__ == '__main__':
+    import time
+    start = time.perf_counter()
+    name = '★ Driver Gloves | Racing Green (Field-Tested)'
+    # get_item_price_by_hash_name_api(name)
+    get_item_price_by_hash_name_v2_api(name)
+    print('Exec time =', time.perf_counter() - start)
