@@ -37,15 +37,20 @@ class MarketBot:
             return
 
         item = self.items[item_idx_in_items]
-        lowest_price_on_market = get_item_price_by_hash_name_v2_api(item.market_hash_name)
 
-        new_price = price_update_policy(
-            current_price=item.price,
-            lowest_market_price=lowest_price_on_market,
-            position=item.position,
-            min_price=min_price,
-            target_price=target_price,
-        )
+        if item.position > 1:
+            # call api for lowest price only if item is not first in a queue
+            lowest_price_on_market = get_item_price_by_hash_name_v2_api(item.market_hash_name)
+            new_price = price_update_policy(
+                current_price=item.price,
+                lowest_market_price=lowest_price_on_market,
+                min_price=min_price,
+                target_price=target_price,
+            )
+        else:
+            # if item already first or not listed, then leave it with current price
+            new_price = item.price
+
         if new_price == item.price:
             print('PASS -', item)
             return
