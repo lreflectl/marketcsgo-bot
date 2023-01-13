@@ -131,7 +131,7 @@ class MarketCSGOBotApp(ctk.CTk):
                 self.min_price_entry.insert(0, item.user_min_price)
                 self.target_price_entry.insert(0, item.user_target_price)
 
-    # Wait before current iteration completes, then destroy
+    # Wait until current iteration is completed, then destroy all widgets
     def on_closing(self, event=0):
         self.stop_event.set()
         self.finish_event.wait(timeout=5)
