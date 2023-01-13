@@ -86,7 +86,7 @@ def set_price_api(item_id: str, price: int) -> bool:
     return True
 
 
-def get_item_price_by_hash_name_api(market_hash_name: str) -> int:
+def get_item_lowest_price_by_hash_name_api(market_hash_name: str) -> int:
     """ Deprecated, slow version. Get minimum market price by hash_name. Return price or 0 on failure. """
     request = f'https://market.csgo.com/api/v2/prices/USD.json'
     max_retries = 5
@@ -105,12 +105,12 @@ def get_item_price_by_hash_name_api(market_hash_name: str) -> int:
     for item in response_json['items']:
         if item['market_hash_name'] == market_hash_name:
             lowest_price = int(float(item['price']) * 1000)
-            print('lowest price from api v2 =', lowest_price)
+            # print('lowest price from api =', lowest_price)
 
     return lowest_price
 
 
-def get_item_price_by_hash_name_v2_api(market_hash_name: str) -> int:
+def get_item_lowest_price_by_hash_name_v2_api(market_hash_name: str) -> int:
     """ Get minimum market price by hash_name. Return price or 0 on failure. """
     request = f'https://market.csgo.com/api/v2/search-item-by-hash-name-specific' \
               f'?key={getenv("SECRET_KEY")}&hash_name={market_hash_name}'
@@ -129,7 +129,7 @@ def get_item_price_by_hash_name_v2_api(market_hash_name: str) -> int:
     lowest_price = 0
     if response_json['data']:
         lowest_price = response_json['data'][0]['price']
-        print('lowest price from api v2 =', lowest_price)
+        # print('lowest price from api v2 =', lowest_price)
 
     return lowest_price
 
@@ -139,5 +139,5 @@ if __name__ == '__main__':
     start = time.perf_counter()
     name = '★ Driver Gloves | Racing Green (Field-Tested)'
     # get_item_price_by_hash_name_api(name)
-    get_item_price_by_hash_name_v2_api(name)
+    get_item_lowest_price_by_hash_name_v2_api(name)
     print('Exec time =', time.perf_counter() - start)
