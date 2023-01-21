@@ -20,7 +20,7 @@ class MarketBot:
         for old_item in self.items:
             new_item = fresh_items_dict.pop(old_item.item_id, None)
             # if new item exists in items list, save min and target price
-            # but if there is no old item in new, then don't save it
+            # but if there is no old items in the new list, then don't save it
             if new_item is not None:
                 new_item.user_min_price = old_item.user_min_price
                 new_item.user_target_price = old_item.user_target_price

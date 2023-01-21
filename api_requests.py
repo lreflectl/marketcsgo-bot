@@ -1,6 +1,7 @@
 import time
 
 from requests import get, RequestException, Response
+from json.decoder import JSONDecodeError
 from dotenv import load_dotenv
 from os import getenv
 from data_structures import ItemOnSale
@@ -34,6 +35,15 @@ def get_response_with_retries(request, max_retries) -> Response or None:
         time.sleep(sleep_on_exception_retry)  # Wait more if exception occurred
 
 
+def safe_json(response: Response) -> dict:
+    """ Always returns json. If JSONDecodeError occurs, the output contains key 'success': False """
+    try:
+        return response.json()
+    except JSONDecodeError as e:
+        print('Invalid json body from server:', e.msg)
+        return {'success': False}
+
+
 def get_items_on_sale_api() -> list[ItemOnSale]:
     """ Get items that on sale right now. Return empty list on failure or items list. """
     request = f'https://market.csgo.com/api/v2/items?key={getenv("SECRET_KEY")}'
@@ -44,7 +54,7 @@ def get_items_on_sale_api() -> list[ItemOnSale]:
         print('Failed on getting items on sale. Max attempts exceeded.')
         return []
 
-    response_json = response.json()
+    response_json = safe_json(response)
     if not response_json['success']:
         print('Server fail on getting items on sale.')
         return []
@@ -78,7 +88,7 @@ def set_price_api(item_id: str, price: int) -> bool:
         print('Failed on setting price. Max attempts exceeded.')
         return False
 
-    response_json = response.json()
+    response_json = safe_json(response)
     if not response_json['success']:
         print('Server fail on setting price.')
         return False
@@ -96,7 +106,7 @@ def get_item_lowest_price_by_hash_name_api(market_hash_name: str) -> int:
         print('Failed on getting price by name. Max attempts exceeded.')
         return 0
 
-    response_json = response.json()
+    response_json = safe_json(response)
     if not response_json['success']:
         print('Server fail on getting price by name.')
         return 0
@@ -121,7 +131,7 @@ def get_item_lowest_price_by_hash_name_v2_api(market_hash_name: str) -> int:
         print('Failed on getting price by name. Max attempts exceeded.')
         return 0
 
-    response_json = response.json()
+    response_json = safe_json(response)
     if not response_json['success']:
         print('Server fail on getting price by name.')
         return 0
@@ -141,3 +151,8 @@ if __name__ == '__main__':
     # get_item_price_by_hash_name_api(name)
     get_item_lowest_price_by_hash_name_v2_api(name)
     print('Exec time =', time.perf_counter() - start)
+
+    # request = f'https://market.csgo.com/api/v2/search-item-by-hash-name-specific' \
+    #           f'?key={getenv("SECRET_KEY")}&hash_name=★ Driver Gloves | Racing Green (Field-Tested)'
+    # response = get(request)
+    # print(type(safe_json(response)))
