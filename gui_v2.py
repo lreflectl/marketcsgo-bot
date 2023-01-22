@@ -58,6 +58,11 @@ class MarketCSGOBotApp(ctk.CTk):
         self.refresh_list_button = ctk.CTkButton(self, command=self.refresh_item_list, text='Refresh list')
         self.refresh_list_button.grid(row=1, column=2, padx=20, pady=20)
 
+        # Get items from api and set user prices from db
+        self.bot.update_items()
+        self.bot.update_from_db_user_prices_for_all_items()
+        self.refresh_item_list()
+
     def start_loop_thread(self):
         self.start_loop_button.configure(state='disabled')
         self.stop_loop_button.configure(state='normal')
@@ -105,7 +110,7 @@ class MarketCSGOBotApp(ctk.CTk):
                 break
 
         # Update items list with values from db
-        self.bot.update_user_prices_for_all_items()
+        self.bot.update_from_db_user_prices_for_all_items()
 
         self.refresh_item_list()
 

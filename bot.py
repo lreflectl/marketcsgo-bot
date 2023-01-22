@@ -126,7 +126,9 @@ class MarketBot:
         # Create a dictionary where keys are item_ids and values are tuples of user prices
         return {str(result[0]): (result[1], result[2]) for result in query.fetchall()}
 
-    def update_user_prices_for_all_items(self):
+    def update_from_db_user_prices_for_all_items(self):
+        if not self.items:
+            return
         item_ids = [item.item_id for item in self.items]
         user_prices_dict = self.get_item_user_prices_from_db(item_ids)
         for item in self.items:
@@ -154,7 +156,7 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
             finish_event.set()
             break
 
-        sleep(3)  # Seconds to sleep on each loop iteration
+        sleep(3.5)  # Seconds to sleep on each loop iteration
 
 
 def main():
