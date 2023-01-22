@@ -58,6 +58,11 @@ class MarketCSGOBotApp(ctk.CTk):
         self.refresh_list_button = ctk.CTkButton(self, command=self.refresh_item_list, text='Refresh list')
         self.refresh_list_button.grid(row=1, column=2, padx=20, pady=20)
 
+        # Get items from api and set user prices from db
+        self.bot.update_items()
+        self.bot.update_from_db_user_prices_for_all_items()
+        self.refresh_item_list()
+
     def start_loop_thread(self):
         self.start_loop_button.configure(state='disabled')
         self.stop_loop_button.configure(state='normal')
@@ -80,22 +85,33 @@ class MarketCSGOBotApp(ctk.CTk):
         toggling_thread.start()
 
     def save_input_prices(self):
-        if self.bot.items:
-            select_text = self.item_menu.get()
-            if select_text == 'Select item by id':
-                return
+        if not self.bot.items:
+            return
 
-            selected_item_id = select_text.split(':')[1]
-            for item in self.bot.items:
-                if item.item_id == selected_item_id:
-                    entry_min_text = self.min_price_entry.get().strip()
-                    if entry_min_text.isdigit():
-                        item.user_min_price = int(float(entry_min_text))
+        select_text = self.item_menu.get()
+        if select_text == 'Select item by id':
+            return
 
-                    entry_target_text = self.target_price_entry.get().strip()
-                    if entry_target_text.isdigit():
-                        item.user_target_price = int(float(entry_target_text))
-                    break
+        selected_item_id = select_text.split(':')[1]
+        for item in self.bot.items:
+            if item.item_id == selected_item_id:
+                entry_min_text = self.min_price_entry.get().strip()
+                if entry_min_text.isdigit():
+                    item.user_min_price = int(float(entry_min_text))
+
+                entry_target_text = self.target_price_entry.get().strip()
+                if entry_target_text.isdigit():
+                    item.user_target_price = int(float(entry_target_text))
+
+                # Save new user prices
+                self.bot.save_item_user_prices_to_db(
+                    item.item_id, item.user_min_price, item.user_target_price
+                )
+                break
+
+        # Update items list with values from db
+        self.bot.update_from_db_user_prices_for_all_items()
+
         self.refresh_item_list()
 
     def update_item_menu(self):
