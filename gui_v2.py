@@ -80,22 +80,33 @@ class MarketCSGOBotApp(ctk.CTk):
         toggling_thread.start()
 
     def save_input_prices(self):
-        if self.bot.items:
-            select_text = self.item_menu.get()
-            if select_text == 'Select item by id':
-                return
+        if not self.bot.items:
+            return
 
-            selected_item_id = select_text.split(':')[1]
-            for item in self.bot.items:
-                if item.item_id == selected_item_id:
-                    entry_min_text = self.min_price_entry.get().strip()
-                    if entry_min_text.isdigit():
-                        item.user_min_price = int(float(entry_min_text))
+        select_text = self.item_menu.get()
+        if select_text == 'Select item by id':
+            return
 
-                    entry_target_text = self.target_price_entry.get().strip()
-                    if entry_target_text.isdigit():
-                        item.user_target_price = int(float(entry_target_text))
-                    break
+        selected_item_id = select_text.split(':')[1]
+        for item in self.bot.items:
+            if item.item_id == selected_item_id:
+                entry_min_text = self.min_price_entry.get().strip()
+                if entry_min_text.isdigit():
+                    item.user_min_price = int(float(entry_min_text))
+
+                entry_target_text = self.target_price_entry.get().strip()
+                if entry_target_text.isdigit():
+                    item.user_target_price = int(float(entry_target_text))
+
+                # Save new user prices
+                self.bot.save_item_user_prices_to_db(
+                    item.item_id, item.user_min_price, item.user_target_price
+                )
+                break
+
+        # Update items list with values from db
+        self.bot.update_user_prices_for_all_items()
+
         self.refresh_item_list()
 
     def update_item_menu(self):
