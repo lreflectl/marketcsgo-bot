@@ -7,11 +7,6 @@ from prettytable import PrettyTable
 class MarketCSGOBotApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.bot = MarketBot()
-        self.stop_event = Event()
-        self.finish_event = Event()
-        self.finish_event.set()  # On app start update loop inactive, so finish is possible
-
         self.title('MarketCSGO Bot')
         self.geometry(f'{980}x{390}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)  # call on_closing() when app gets closed
@@ -23,6 +18,8 @@ class MarketCSGOBotApp(ctk.CTk):
         self.control_frame = ctk.CTkFrame(self, width=220, height=300)
         self.control_frame.grid(row=0, column=3, padx=0, pady=(20, 0))
         self.control_frame.grid_propagate(0)
+
+        self.bot = MarketBot()  # initialize bot for items menu
 
         self.item_menu = ctk.CTkOptionMenu(self.control_frame, width=180,
                                            values=self.bot.items, command=self.item_menu_callback)
@@ -58,8 +55,14 @@ class MarketCSGOBotApp(ctk.CTk):
         self.refresh_list_button = ctk.CTkButton(self, command=self.refresh_item_list, text='Refresh list')
         self.refresh_list_button.grid(row=1, column=2, padx=20, pady=20)
 
+        self.stop_event = Event()
+        self.finish_event = Event()
+        self.finish_event.set()  # On app start update loop inactive, so finish is possible
+
+    def post_init(self):
         # Get items from api and set user prices from db
         self.bot.update_items()
+        self.bot.initialize_db()
         self.bot.update_from_db_user_prices_for_all_items()
         self.refresh_item_list()
 
@@ -156,6 +159,7 @@ class MarketCSGOBotApp(ctk.CTk):
 
 def main():
     app = MarketCSGOBotApp()
+    app.after(100, app.post_init)  # Wait for UI and initialize bot
     app.mainloop()
 
 
