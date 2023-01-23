@@ -7,7 +7,6 @@ from prettytable import PrettyTable
 class MarketCSGOBotApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self._set_appearance_mode('Dark')
         self.title('MarketCSGO Bot')
         self.geometry(f'{980}x{390}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)  # call on_closing() when app gets closed
@@ -47,9 +46,9 @@ class MarketCSGOBotApp(ctk.CTk):
                                                      command=self.save_input_prices)
         self.save_user_prices_button.grid(row=5, column=0, padx=20, pady=(20, 10), sticky='ns')
 
-        self.appearance_mode_switch_var = ctk.StringVar(value='Dark')
+        self.appearance_mode_switch_var = ctk.StringVar(value=self._get_appearance_mode())
         self.appearance_mode_switch = ctk.CTkSwitch(
-            self.control_frame, onvalue='Dark', offvalue='Light', command=self.change_appearance_mode_event,
+            self.control_frame, onvalue='dark', offvalue='light', command=self.change_appearance_mode_event,
             variable=self.appearance_mode_switch_var, text='Dark Mode'
         )
         self.appearance_mode_switch.grid(row=7, column=0, padx=20, pady=(10, 10), sticky='s')
