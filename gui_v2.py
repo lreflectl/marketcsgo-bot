@@ -7,6 +7,7 @@ from prettytable import PrettyTable
 class MarketCSGOBotApp(ctk.CTk):
     def __init__(self):
         super().__init__()
+        self._set_appearance_mode('Dark')
         self.title('MarketCSGO Bot')
         self.geometry(f'{980}x{390}')
         self.protocol('WM_DELETE_WINDOW', self.on_closing)  # call on_closing() when app gets closed
