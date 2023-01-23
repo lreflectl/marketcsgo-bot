@@ -2,17 +2,16 @@ from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
 from api_requests import get_item_lowest_price_by_hash_name_v2_api
 from policies import price_update_policy
-from data_structures import ItemOnSale
 from threading import Event, Thread
 from sqlite3 import connect
+from pathlib import Path
 from time import sleep
 
 
 class MarketBot:
     def __init__(self):
         self.items = []
-        self.db_name = 'bot_data.db'
-        self._initialize_db()
+        self.db_path = Path(__file__).parent.resolve() / 'bot_data.db'
 
     def update_items(self):
         fresh_items_dict = {item.item_id: item for item in get_items_on_sale_api()}
@@ -97,8 +96,8 @@ class MarketBot:
             else:
                 print('FAIL -', item)
 
-    def _initialize_db(self):
-        connection = connect(self.db_name)
+    def initialize_db(self):
+        connection = connect(self.db_path)
         cursor = connection.cursor()
         cursor.execute('CREATE TABLE IF NOT EXISTS ItemsOnSale('
                        'item_id INTEGER PRIMARY KEY, '
@@ -107,7 +106,7 @@ class MarketBot:
         connection.close()
 
     def save_item_user_prices_to_db(self, item_id: str, min_price: int, target_price: int):
-        connection = connect(self.db_name)
+        connection = connect(self.db_path)
         cursor = connection.cursor()
         cursor.execute(
             'REPLACE INTO ItemsOnSale (item_id, min_price, target_price)'
@@ -117,7 +116,7 @@ class MarketBot:
         connection.close()
 
     def get_item_user_prices_from_db(self, item_ids: list[str]) -> dict[str, tuple[int, int]]:
-        connection = connect(self.db_name)
+        connection = connect(self.db_path)
         cursor = connection.cursor()
         query = cursor.execute(
             'SELECT item_id, min_price, target_price FROM ItemsOnSale '
@@ -173,6 +172,8 @@ def main():
     bot = MarketBot()
     bot.save_item_user_prices_to_db('3981048614', 124, 0)
     print(bot.get_item_user_prices_from_db(['3981048614', '39810486143']))
+
+    # print(Path(__file__).parent.resolve())
 
 
 if __name__ == '__main__':
