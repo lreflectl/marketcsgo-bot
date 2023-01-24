@@ -14,10 +14,6 @@ class MarketCSGOBotApp(ctk.CTk):
         self.items_textbox = ctk.CTkTextbox(self, width=700, height=300, font=('Consolas', 12))
         self.items_textbox.grid(row=0, column=0, columnspan=3, padx=20, pady=(20, 0))
 
-        self.app_load_progressbar = ctk.CTkProgressBar(self, width=500, mode='indeterminate')
-        self.app_load_progressbar.grid(row=0, column=0, columnspan=3, padx=20, pady=(20, 0))
-        self.app_load_progressbar.start()
-
         # ----- Control frame -----
         self.control_frame = ctk.CTkFrame(self, width=220, height=300)
         self.control_frame.grid(row=0, column=3, padx=0, pady=(20, 0))
@@ -45,26 +41,24 @@ class MarketCSGOBotApp(ctk.CTk):
         self.save_user_prices_button = ctk.CTkButton(self.control_frame, text='Save and refresh list', width=180,
                                                      command=self.save_input_prices)
         self.save_user_prices_button.grid(row=5, column=0, padx=20, pady=(20, 10), sticky='ns')
-
-        self.appearance_mode_switch_var = ctk.StringVar(value=self._get_appearance_mode())
-        self.appearance_mode_switch = ctk.CTkSwitch(
-            self.control_frame, onvalue='dark', offvalue='light', command=self.change_appearance_mode_event,
-            variable=self.appearance_mode_switch_var, text='Dark Mode'
-        )
-        self.appearance_mode_switch.grid(row=7, column=0, padx=20, pady=(10, 10), sticky='s')
         # -------------------------
-
-        self.start_loop_button = ctk.CTkButton(self, command=self.start_loop_thread, text='Start updating prices')
-        self.start_loop_button.grid(row=1, column=1, padx=20, pady=20)
 
         self.stop_loop_button = ctk.CTkButton(self, command=self.stop_loop_thread, text='Stop', state='disabled')
         self.stop_loop_button.grid(row=1, column=0, padx=20, pady=20)
 
-        self.loop_progressbar = ctk.CTkProgressBar(self, width=200, mode='indeterminate')
-        self.loop_progressbar.grid(row=1, column=3, padx=0, pady=0)
+        self.loop_progressbar = ctk.CTkProgressBar(self, width=300, height=10, mode='indeterminate')
+        self.loop_progressbar.grid(row=1, column=1, padx=0, pady=0)
+        self.loop_progressbar.start()
 
-        self.refresh_list_button = ctk.CTkButton(self, command=self.refresh_item_list, text='Refresh list')
-        self.refresh_list_button.grid(row=1, column=2, padx=20, pady=20)
+        self.start_loop_button = ctk.CTkButton(self, command=self.start_loop_thread, text='Start updating prices')
+        self.start_loop_button.grid(row=1, column=2, padx=20, pady=20)
+
+        self.appearance_mode_switch_var = ctk.StringVar(value=self._get_appearance_mode())
+        self.appearance_mode_switch = ctk.CTkSwitch(
+            self, onvalue='dark', offvalue='light', command=self.change_appearance_mode_event,
+            variable=self.appearance_mode_switch_var, text='Dark Mode'
+        )
+        self.appearance_mode_switch.grid(row=1, column=3, padx=20, pady=(0, 0))
 
         self.stop_event = Event()
         self.finish_event = Event()
@@ -81,13 +75,12 @@ class MarketCSGOBotApp(ctk.CTk):
         self.bot.update_items()
         self.bot.update_from_db_user_prices_for_all_items()
         self.refresh_item_list()
-        # Make sure that app progressbar is updated to be able to destroy
-        self.app_load_progressbar.update_idletasks()
-        self.app_load_progressbar.destroy()
+        self.loop_progressbar.stop()
 
     def start_loop_thread(self):
         self.start_loop_button.configure(state='disabled')
         self.stop_loop_button.configure(state='normal')
+        self.loop_progressbar.start()
 
         self.stop_event.clear()
         self.finish_event.clear()
@@ -98,8 +91,6 @@ class MarketCSGOBotApp(ctk.CTk):
 
         updater_thread = Thread(target=self.update_item_list_loop)
         updater_thread.start()
-
-        self.loop_progressbar.start()
 
     def stop_loop_thread(self):
         self.stop_event.set()
@@ -112,6 +103,27 @@ class MarketCSGOBotApp(ctk.CTk):
 
         toggling_thread = Thread(target=toggle_buttons_on_finish)
         toggling_thread.start()
+
+    def update_item_list_loop(self):
+        print('list updater started')
+        while True:
+            self.update_event.wait()
+            self.update_event.clear()
+
+            if self.finish_event.is_set():
+                break
+            self.refresh_item_list()
+            print('updated list')
+        self.update_event.set()  # Signal to exit
+        print('list updater finished')
+
+    # Wait until current iteration is completed, then destroy all widgets
+    def on_closing(self, event=0):
+        self.stop_event.set()
+        self.finish_event.wait()
+        self.update_event.set()
+        self.update_event.wait()
+        self.destroy()
 
     def save_input_prices(self):
         if not self.bot.items:
@@ -169,15 +181,6 @@ class MarketCSGOBotApp(ctk.CTk):
         self.items_textbox.delete('0.0', ctk.END)
         self.items_textbox.insert('0.0', pretty_table.get_string())
 
-    def update_item_list_loop(self):
-        print('updater started')
-        while not self.finish_event.is_set():
-            self.update_event.wait()
-            self.update_event.clear()
-            self.refresh_item_list()
-            print('updated list')
-        print('updater finished')
-
     def item_menu_callback(self, choice):
         selected_item_id = choice.split(':')[1]
         for item in self.bot.items:
@@ -190,16 +193,9 @@ class MarketCSGOBotApp(ctk.CTk):
     def change_appearance_mode_event(self):
         ctk.set_appearance_mode(self.appearance_mode_switch_var.get())
 
-    # Wait until current iteration is completed, then destroy all widgets
-    def on_closing(self, event=0):
-        self.stop_event.set()
-        self.finish_event.wait(timeout=5)
-        self.destroy()
-
 
 def main():
     app = MarketCSGOBotApp()
-    app.after(2000, app.post_init)  # Wait for UI then initialize bot
     app.mainloop()
 
 

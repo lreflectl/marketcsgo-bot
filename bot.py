@@ -144,11 +144,12 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
         market_bot.set_user_price_for_all_items()
 
         if timer == 60:
-            market_bot.set_target_prices_for_items()  # every minute reset prices to the target prices
+            market_bot.set_target_prices_for_items()  # every 60 iterations reset prices to the target prices
             timer = 0
         timer += 1
 
         if stop_event.is_set():
+            update_event.set()  # update to unlock updater for finish
             print('Stopping price update loop...')
             finish_event.set()
             break
