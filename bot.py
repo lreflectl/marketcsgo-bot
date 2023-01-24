@@ -137,9 +137,7 @@ class MarketBot:
                 item.user_target_price = user_prices[1]
 
 
-def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event):
-    stop_event.clear()
-    finish_event.clear()
+def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event, update_event: Event):
     timer = 0
     while True:
         market_bot.update_items()
@@ -155,6 +153,7 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
             finish_event.set()
             break
 
+        update_event.set()
         sleep(3.5)  # Seconds to sleep on each loop iteration
 
 

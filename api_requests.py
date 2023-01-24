@@ -23,7 +23,7 @@ def get_response_with_retries(request, max_retries) -> Response or None:
 
     for attempt in range(max_retries + 1):
         try:
-            response = get(request)
+            response = get(request, timeout=5)
             time.sleep(sleep_after_request_secs)  # To not exceed limit of 5 requests/sec
             return response
         except RequestException as e:

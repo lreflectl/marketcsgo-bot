@@ -69,21 +69,35 @@ class MarketCSGOBotApp(ctk.CTk):
         self.stop_event = Event()
         self.finish_event = Event()
         self.finish_event.set()  # On app start update loop inactive, so finish is possible
+        self.update_event = Event()
+
+        # Initialize db and get items by api concurrently after gui build
+        init_thread = Thread(target=self.post_init)
+        init_thread.start()
 
     def post_init(self):
+        self.bot.initialize_db()
         # Get items from api and set user prices from db
         self.bot.update_items()
-        self.bot.initialize_db()
         self.bot.update_from_db_user_prices_for_all_items()
         self.refresh_item_list()
+        # Make sure that app progressbar is updated to be able to destroy
+        self.app_load_progressbar.update_idletasks()
         self.app_load_progressbar.destroy()
 
     def start_loop_thread(self):
         self.start_loop_button.configure(state='disabled')
         self.stop_loop_button.configure(state='normal')
 
-        worker_thread = Thread(target=price_update_loop, args=(self.bot, self.stop_event, self.finish_event))
+        self.stop_event.clear()
+        self.finish_event.clear()
+
+        worker_thread = Thread(
+            target=price_update_loop, args=(self.bot, self.stop_event, self.finish_event, self.update_event))
         worker_thread.start()
+
+        updater_thread = Thread(target=self.update_item_list_loop)
+        updater_thread.start()
 
         self.loop_progressbar.start()
 
@@ -135,6 +149,8 @@ class MarketCSGOBotApp(ctk.CTk):
 
     def refresh_item_list(self):
         if not self.bot.items:
+            self.items_textbox.delete('0.0', ctk.END)
+            self.items_textbox.insert('0.0', 'Items list empty or no internet connection')
             return
 
         self.update_item_menu()
@@ -152,6 +168,15 @@ class MarketCSGOBotApp(ctk.CTk):
 
         self.items_textbox.delete('0.0', ctk.END)
         self.items_textbox.insert('0.0', pretty_table.get_string())
+
+    def update_item_list_loop(self):
+        print('updater started')
+        while not self.finish_event.is_set():
+            self.update_event.wait()
+            self.update_event.clear()
+            self.refresh_item_list()
+            print('updated list')
+        print('updater finished')
 
     def item_menu_callback(self, choice):
         selected_item_id = choice.split(':')[1]
