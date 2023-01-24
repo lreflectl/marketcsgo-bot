@@ -34,12 +34,19 @@ class MarketBot:
 
         self.items = updated_items
 
-    def set_user_price_for_item(self, item_idx_in_items, min_price, target_price):
+    def set_user_price_for_item(self, item_id, min_price, target_price):
         if not self.items:
             print('FAIL - item list empty')
             return
 
-        item = self.items[item_idx_in_items]
+        item = None
+        for itm in self.items:
+            if itm.item_id == item_id:
+                item = itm
+                break
+        if item is None:
+            print('FAIL - no item with given id')
+            return
 
         if item.position > 1:
             # call api for lowest price only if item is not first in a queue
@@ -75,13 +82,13 @@ class MarketBot:
         if not self.items:
             print('FAIL - item list empty')
             return
-        for idx, item in enumerate(self.items):
+        for item in self.items:
             if item.user_target_price == 0 or item.user_min_price == 0:
                 print('PASS (not set) -', item)
                 continue
-            self.set_user_price_for_item(idx, item.user_min_price, item.user_target_price)
+            self.set_user_price_for_item(item.item_id, item.user_min_price, item.user_target_price)
 
-    def set_target_prices_for_items(self):
+    def set_target_price_for_items(self):
         if not self.items:
             print('FAIL - item list empty')
             return
@@ -141,11 +148,13 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
     timer = 0
     while True:
         market_bot.update_items()
+        market_bot.update_from_db_user_prices_for_all_items()
         market_bot.set_user_price_for_all_items()
 
         if timer == 60:
-            market_bot.set_target_prices_for_items()  # every 60 iterations reset prices to the target prices
+            market_bot.set_target_price_for_items()  # every 60 iterations reset prices to the target prices
             timer = 0
+            sleep(1)
         timer += 1
 
         if stop_event.is_set():
