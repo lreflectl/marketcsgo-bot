@@ -71,9 +71,10 @@ class MarketCSGOBotApp(ctk.CTk):
 
     def post_init(self):
         self.bot.initialize_db()
-        # Get items from api and set user prices from db
+        print('starting to update items...')
+        # Get items from api and read user prices from db
         self.bot.update_items()
-        self.bot.update_from_db_user_prices_for_all_items()
+        print('items updated')
         self.refresh_item_list()
         self.loop_progressbar.stop()
 
@@ -113,7 +114,7 @@ class MarketCSGOBotApp(ctk.CTk):
             if self.finish_event.is_set():
                 break
             self.refresh_item_list()
-            print('updated list')
+            # print('updated list and menu')
         self.update_event.set()  # Signal to exit
         print('list updater finished')
 
@@ -149,9 +150,6 @@ class MarketCSGOBotApp(ctk.CTk):
                     item.item_id, item.user_min_price, item.user_target_price
                 )
                 break
-
-        # Update items list with values from db
-        self.bot.update_from_db_user_prices_for_all_items()
 
         self.refresh_item_list()
 

@@ -14,9 +14,12 @@ class MarketBot:
         self.db_path = Path(__file__).parent.resolve() / 'bot_data.db'
 
     def update_items(self):
-        fresh_items_dict = {item.item_id: item for item in get_items_on_sale_api()}
+        items_from_api = get_items_on_sale_api()
+        fresh_items_dict = {item.item_id: item for item in items_from_api}
         if not self.items:
             self.items = fresh_items_dict.values()
+            # print('updated items from api')
+            self._update_from_db_user_prices_for_all_items()
             return
 
         updated_items = []
@@ -33,6 +36,8 @@ class MarketBot:
             updated_items.append(new_item)
 
         self.items = updated_items
+        # print('updated items from api')
+        self._update_from_db_user_prices_for_all_items()
 
     def set_user_price_for_item(self, item_id, min_price, target_price):
         if not self.items:
@@ -122,7 +127,7 @@ class MarketBot:
         connection.commit()
         connection.close()
 
-    def get_item_user_prices_from_db(self, item_ids: list[str]) -> dict[str, tuple[int, int]]:
+    def _get_items_user_prices_from_db(self, item_ids: list[str]) -> dict[str, tuple[int, int]]:
         connection = connect(self.db_path)
         cursor = connection.cursor()
         query = cursor.execute(
@@ -132,23 +137,23 @@ class MarketBot:
         # Create a dictionary where keys are item_ids and values are tuples of user prices
         return {str(result[0]): (result[1], result[2]) for result in query.fetchall()}
 
-    def update_from_db_user_prices_for_all_items(self):
+    def _update_from_db_user_prices_for_all_items(self):
         if not self.items:
             return
         item_ids = [item.item_id for item in self.items]
-        user_prices_dict = self.get_item_user_prices_from_db(item_ids)
+        user_prices_dict = self._get_items_user_prices_from_db(item_ids)
         for item in self.items:
             if item.item_id in user_prices_dict:
                 user_prices = user_prices_dict[item.item_id]
                 item.user_min_price = user_prices[0]
                 item.user_target_price = user_prices[1]
+        # print('updated user prices from db')
 
 
 def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event, update_event: Event):
     timer = 0
     while True:
         market_bot.update_items()
-        market_bot.update_from_db_user_prices_for_all_items()
         market_bot.set_user_price_for_all_items()
 
         if timer == 60:
@@ -180,7 +185,7 @@ def main():
 
     bot = MarketBot()
     bot.save_item_user_prices_to_db('3981048614', 124, 0)
-    print(bot.get_item_user_prices_from_db(['3981048614', '39810486143']))
+    print(bot._get_items_user_prices_from_db(['3981048614', '39810486143']))
 
     # print(Path(__file__).parent.resolve())
 
