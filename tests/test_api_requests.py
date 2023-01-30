@@ -2,8 +2,8 @@ import unittest
 from api_requests import get_response_with_retries
 from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
-from api_requests import get_item_lowest_price_by_hash_name_api
-from api_requests import get_item_lowest_price_by_hash_name_v2_api
+from api_requests import get_item_lowest_price_api
+from api_requests import get_item_lowest_price_v2_api
 from data_structures import ItemOnSale
 
 
@@ -25,11 +25,11 @@ class TestApi(unittest.TestCase):
         self.assertEqual(status, False)
 
     def test_get_item_lowest_price_by_hash_name_api(self):
-        lowest_price = get_item_lowest_price_by_hash_name_api('Spectrum 2 Case')
+        lowest_price = get_item_lowest_price_api('Spectrum 2 Case')
         self.assertEqual(type(lowest_price), int)
 
     def test_get_item_lowest_price_by_hash_name_v2_api(self):
-        lowest_price = get_item_lowest_price_by_hash_name_v2_api('Spectrum 2 Case')
+        lowest_price = get_item_lowest_price_v2_api('Spectrum 2 Case')
         self.assertEqual(type(lowest_price), int)
 
 

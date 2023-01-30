@@ -1,6 +1,6 @@
 from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
-from api_requests import get_item_lowest_price_by_hash_name_v2_api
+from api_requests import get_item_lowest_price_v2_api
 from policies import price_update_policy
 from threading import Event, Thread
 from sqlite3 import connect
@@ -50,7 +50,7 @@ class MarketBot:
 
         if item.position > 1:
             # call api for lowest price only if item is not first in a queue
-            lowest_price_on_market = get_item_lowest_price_by_hash_name_v2_api(item.market_hash_name)
+            lowest_price_on_market = get_item_lowest_price_v2_api(item.market_hash_name)
             new_price = price_update_policy(
                 current_price=item.price,
                 lowest_market_price=lowest_price_on_market,
