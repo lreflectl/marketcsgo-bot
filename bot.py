@@ -150,7 +150,7 @@ class MarketBot:
         # print('updated user prices from db')
 
 
-def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event, update_event: Event):
+def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event):
     timer = 0
     while True:
         market_bot.update_items()
@@ -163,29 +163,29 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
         timer += 1
 
         if stop_event.is_set():
-            update_event.set()  # update to unlock updater for finish
+            stop_event.clear()
             print('Stopping price update loop...')
             finish_event.set()
             break
 
-        update_event.set()
-        sleep(3.5)  # Seconds to sleep on each loop iteration
+        sleep(1)  # Seconds to sleep on each loop iteration
 
 
 def main():
-    # bot = MarketBot()
-    # stop_event = Event()
-    # finish_event = Event()
-    # worker_thread = Thread(target=price_update_loop, args=(bot, stop_event, finish_event))
-    # worker_thread.start()
-    #
-    # user_input = input('Press Enter to stop price update loop:\n')
-    # if user_input == '':
-    #     stop_event.set()
-
     bot = MarketBot()
-    bot.save_item_user_prices_to_db('3981048614', 124, 0)
-    print(bot._get_items_user_prices_from_db(['3981048614', '39810486143']))
+    stop_event = Event()
+    finish_event = Event()
+    updater_event = Event()
+    worker_thread = Thread(target=price_update_loop, args=(bot, stop_event, finish_event, updater_event))
+    worker_thread.start()
+
+    user_input = input('Press Enter to stop price update loop:\n')
+    if user_input == '':
+        stop_event.set()
+
+    # bot = MarketBot()
+    # bot.save_item_user_prices_to_db('3981048614', 124, 0)
+    # print(bot._get_items_user_prices_from_db(['3981048614', '39810486143']))
 
     # print(Path(__file__).parent.resolve())
 

@@ -18,7 +18,7 @@ load_dotenv()
 
 def get_response_with_retries(request, max_retries) -> Response or None:
     """ Return response or None if all retries fail. """
-    sleep_after_request_secs = 0.32
+    sleep_after_request_secs = 0.42
     sleep_on_exception_retry = 1
 
     for attempt in range(max_retries + 1):
