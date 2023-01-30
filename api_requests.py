@@ -16,7 +16,7 @@ API_ITEM_STATUS = {
 load_dotenv()
 
 
-def get_response_with_retries(request, max_retries, sleep_after_request=0.35, sleep_on_retry=1) -> Response or None:
+def get_response_with_retries(request, max_retries, sleep_after_request=0.5, sleep_on_retry=1) -> Response or None:
     """ Return response or None if all retries fail. """
     for attempt in range(max_retries + 1):
         try:
@@ -80,7 +80,7 @@ def set_price_api(item_id: str, price: int) -> bool:
     max_retries = 5
 
     # The market API allows
-    response = get_response_with_retries(request, max_retries, sleep_after_request=3)
+    response = get_response_with_retries(request, max_retries, sleep_after_request=1)
     if response is None:
         print('Failed on setting price. Max attempts exceeded.')
         return False
