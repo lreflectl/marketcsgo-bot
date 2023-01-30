@@ -1,6 +1,7 @@
 from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
 from api_requests import get_item_lowest_price_v2_api
+from api_requests import  get_dict_of_items_lowest_prices_api
 from policies import price_update_policy
 from threading import Event, Thread
 from sqlite3 import connect
@@ -34,7 +35,7 @@ class MarketBot:
 
         self.items = updated_items
 
-    def set_user_price_for_item(self, item_id, min_price, target_price):
+    def set_user_price_for_item(self, item_id, min_price, target_price, lowest_price):
         if not self.items:
             print('FAIL - item list empty')
             return
@@ -49,11 +50,9 @@ class MarketBot:
             return
 
         if item.position > 1:
-            # call api for lowest price only if item is not first in a queue
-            lowest_price_on_market = get_item_lowest_price_v2_api(item.market_hash_name)
             new_price = price_update_policy(
                 current_price=item.price,
-                lowest_market_price=lowest_price_on_market,
+                lowest_market_price=lowest_price,
                 min_price=min_price,
                 target_price=target_price,
             )
@@ -82,11 +81,14 @@ class MarketBot:
         if not self.items:
             print('FAIL - item list empty')
             return
+
+        lowest_prices_dict = get_dict_of_items_lowest_prices_api(self.get_hash_names())
         for item in self.items:
             if item.user_target_price == 0 or item.user_min_price == 0:
                 print('PASS (not set) -', item)
                 continue
-            self.set_user_price_for_item(item.item_id, item.user_min_price, item.user_target_price)
+            lowest_price = lowest_prices_dict[item.market_hash_name]
+            self.set_user_price_for_item(item.item_id, item.user_min_price, item.user_target_price, lowest_price)
 
     def set_target_price_for_items(self):
         if not self.items:
@@ -139,6 +141,12 @@ class MarketBot:
             return []
 
         return [item.item_id for item in self.items]
+
+    def get_hash_names(self) -> list[str]:
+        if not self.items:
+            return []
+
+        return [item.market_hash_name for item in self.items]
 
     def update_from_db_user_prices_for_all_items(self, user_prices_dict: dict[str, tuple[int, int]]):
         if user_prices_dict is None:

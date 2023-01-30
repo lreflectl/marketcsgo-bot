@@ -171,7 +171,6 @@ def get_dict_of_items_lowest_prices_api(market_hash_names: list[str]) -> dict[st
 
 
 if __name__ == '__main__':
-    import time
     start = time.perf_counter()
     name = '★ Driver Gloves | Racing Green (Field-Tested)'
     # get_item_price_api(name)
@@ -180,8 +179,3 @@ if __name__ == '__main__':
         '★ Driver Gloves | Racing Green (Field-Tested)', '★ Hand Wraps | CAUTION! (Field-Tested)'
     ]))
     print('Exec time =', time.perf_counter() - start)
-
-    # request = f'https://market.csgo.com/api/v2/search-item-by-hash-name-specific' \
-    #           f'?key={getenv("SECRET_KEY")}&hash_name=★ Driver Gloves | Racing Green (Field-Tested)'
-    # response = get(request)
-    # print(type(safe_json(response)))
