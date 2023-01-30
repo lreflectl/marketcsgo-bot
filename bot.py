@@ -87,6 +87,9 @@ class MarketBot:
             if item.user_target_price == 0 or item.user_min_price == 0:
                 print('PASS (not set) -', item)
                 continue
+            if item.market_hash_name not in lowest_prices_dict:
+                print('FAIL - could not get lowest price for item')
+                continue
             lowest_price = lowest_prices_dict[item.market_hash_name]
             self.set_user_price_for_item(item.item_id, item.user_min_price, item.user_target_price, lowest_price)
 

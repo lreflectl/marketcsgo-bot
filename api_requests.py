@@ -165,7 +165,8 @@ def get_dict_of_items_lowest_prices_api(market_hash_names: list[str]) -> dict[st
     if response_json['data']:
         prices_dict = response_json['data']
         for key, value in prices_dict.items():
-            lowest_prices[key] = int(value[0]['price'])
+            if value[0]['price'].isdigit():
+                lowest_prices[key] = int(value[0]['price'])
 
     return lowest_prices
 
