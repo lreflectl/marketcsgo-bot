@@ -10,8 +10,10 @@ class ItemOnSale:
     market_hash_name: str
     user_min_price = 0
     user_target_price = 0
+    last_update_time = 0.
 
     def __repr__(self):
-        return f'ItemOnSale(id:{self.item_id}, {self.market_hash_name},' \
-               f' {self.price/1000:.3f} {self.currency}, pos:{self.position} ' \
-               f' min:{self.user_min_price}, target:{self.user_target_price})'
+        return f'Item(id:{self.item_id}, {self.market_hash_name},' \
+               f' {self.price/1000:.3f} {self.currency}, pos:{self.position}, ' \
+               f' min:{self.user_min_price}, target:{self.user_target_price},' \
+               f' upd time: {self.last_update_time:.1f})'

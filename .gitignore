@@ -8,3 +8,4 @@ build/
 images/
 *.spec
 *.db
+check.py

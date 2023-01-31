@@ -15,8 +15,12 @@ API_ITEM_STATUS = {
 
 load_dotenv()
 
+SLEEP_AFTER_REQUEST = 0.3
+SLEEP_ON_RETRY = 2
 
-def get_response_with_retries(request, max_retries, sleep_after_request=0.5, sleep_on_retry=1) -> Response or None:
+
+def get_response_with_retries(request, max_retries, sleep_after_request=SLEEP_AFTER_REQUEST,
+                              sleep_on_retry=SLEEP_ON_RETRY) -> Response or None:
     """ Return response or None if all retries fail. """
     for attempt in range(max_retries + 1):
         try:
@@ -43,7 +47,7 @@ def safe_json(response: Response) -> dict:
 def get_items_on_sale_api() -> list[ItemOnSale]:
     """ Get items that on sale right now. Return empty list on failure or items list. """
     request = f'https://market.csgo.com/api/v2/items?key={getenv("SECRET_KEY")}'
-    max_retries = 5
+    max_retries = 2
 
     response = get_response_with_retries(request, max_retries)
     if response is None:
@@ -77,10 +81,10 @@ def set_price_api(item_id: str, price: int) -> bool:
     """ Set price on item by its item_id. Return True if set, False on fail. """
     request = f'https://market.csgo.com/api/v2/set-price' \
               f'?key={getenv("SECRET_KEY")}&item_id={item_id}&price={price}&cur=USD'
-    max_retries = 5
+    max_retries = 2
 
     # The market API allows
-    response = get_response_with_retries(request, max_retries, sleep_after_request=1)
+    response = get_response_with_retries(request, max_retries)
     if response is None:
         print('Failed on setting price. Max attempts exceeded.')
         return False
@@ -88,8 +92,6 @@ def set_price_api(item_id: str, price: int) -> bool:
     response_json = safe_json(response)
     if not response_json['success']:
         print(f'Server fail on setting price. Error message: {response_json["error"]}')
-        if response_json['error'] == 'too_often':
-            time.sleep(5)
         return False
 
     return True
@@ -98,7 +100,7 @@ def set_price_api(item_id: str, price: int) -> bool:
 def get_item_lowest_price_api(market_hash_name: str) -> int:
     """ Deprecated, slow version. Get minimum market price by hash_name. Return price or 0 on failure. """
     request = f'https://market.csgo.com/api/v2/prices/USD.json'
-    max_retries = 5
+    max_retries = 2
 
     response = get_response_with_retries(request, max_retries)
     if response is None:
@@ -123,7 +125,7 @@ def get_item_lowest_price_v2_api(market_hash_name: str) -> int:
     """ Get minimum market price by hash_name. Return price or 0 on failure. """
     request = f'https://market.csgo.com/api/v2/search-item-by-hash-name-specific' \
               f'?key={getenv("SECRET_KEY")}&hash_name={market_hash_name}'
-    max_retries = 5
+    max_retries = 2
 
     response = get_response_with_retries(request, max_retries)
     if response is None:
@@ -149,7 +151,7 @@ def get_dict_of_items_lowest_prices_api(market_hash_names: list[str]) -> dict[st
     for hash_name in market_hash_names:
         request += f'&list_hash_name[]={hash_name}'
 
-    max_retries = 5
+    max_retries = 2
 
     response = get_response_with_retries(request, max_retries)
     if response is None:

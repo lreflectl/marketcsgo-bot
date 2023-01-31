@@ -1,18 +1,18 @@
 from api_requests import get_items_on_sale_api
 from api_requests import set_price_api
-from api_requests import get_item_lowest_price_v2_api
 from api_requests import  get_dict_of_items_lowest_prices_api
 from policies import price_update_policy
 from threading import Event, Thread
 from sqlite3 import connect
 from pathlib import Path
-from time import sleep
+import time
 
 
 class MarketBot:
     def __init__(self):
         self.items = []
         self.db_path = Path(__file__).parent.resolve() / 'bot_data.db'
+        self.TIME_GAP_BETWEEN_UPDATES = 10
 
     def update_items(self, items_from_api):
         fresh_items_dict = {item.item_id: item for item in items_from_api}
@@ -23,11 +23,12 @@ class MarketBot:
         updated_items = []
         for old_item in self.items:
             new_item = fresh_items_dict.pop(old_item.item_id, None)
-            # if new item exists in items list, save min and target price
+            # if new item exists in items list, save min, target price and update time
             # but if there is no old items in the new list, then don't save it
             if new_item is not None:
                 new_item.user_min_price = old_item.user_min_price
                 new_item.user_target_price = old_item.user_target_price
+                new_item.last_update_time = old_item.last_update_time
                 updated_items.append(new_item)
         # add items that were newly added and weren't in list
         for new_item in fresh_items_dict.values():
@@ -47,6 +48,9 @@ class MarketBot:
                 break
         if item is None:
             print('FAIL - no item with given id')
+            return
+        if time.time() - item.last_update_time < self.TIME_GAP_BETWEEN_UPDATES:
+            print(f'PASS (cool-down) - the item had been already updated within {self.TIME_GAP_BETWEEN_UPDATES} secs')
             return
 
         if item.position > 1:
@@ -70,11 +74,13 @@ class MarketBot:
             print('User input Error -', item)
             return
 
-        status = set_price_api(item.item_id, new_price)
-        if status:
+        is_set = set_price_api(item.item_id, new_price)
+        if is_set:
             item.price = new_price
+            item.last_update_time = time.time()
             print('OK -', item)
         else:
+            print(time.time() - item.last_update_time)
             print('FAIL -', item)
 
     def set_user_price_for_all_items(self):
@@ -90,6 +96,7 @@ class MarketBot:
             if item.market_hash_name not in lowest_prices_dict:
                 print('FAIL - could not get lowest price for item')
                 continue
+
             lowest_price = lowest_prices_dict[item.market_hash_name]
             self.set_user_price_for_item(item.item_id, item.user_min_price, item.user_target_price, lowest_price)
 
@@ -101,9 +108,15 @@ class MarketBot:
             if item.user_target_price == 0 or item.user_min_price == 0:
                 print('PASS (not set) -', item)
                 continue
+            if time.time() - item.last_update_time < self.TIME_GAP_BETWEEN_UPDATES:
+                print(
+                    f'PASS (cool-down) - the item had been already updated within {self.TIME_GAP_BETWEEN_UPDATES} secs')
+                continue
+
             status = set_price_api(item.item_id, item.user_target_price)
             if status:
                 item.price = item.user_target_price
+                item.last_update_time = time.time()
                 print('OK -', item)
             else:
                 print('FAIL -', item)
@@ -175,10 +188,9 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
 
         market_bot.set_user_price_for_all_items()
 
-        if timer == 60:
-            market_bot.set_target_price_for_items()  # every 60 iterations reset prices to the target prices
+        if timer == 100:
+            market_bot.set_target_price_for_items()  # every n iterations reset prices to the target prices
             timer = 0
-            sleep(3)
         timer += 1
 
         if stop_event.is_set():
@@ -187,7 +199,7 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
             finish_event.set()
             break
 
-        sleep(1)  # Seconds to sleep on each loop iteration
+        # sleep(1)  # Seconds to sleep on each loop iteration
 
 
 def main():
