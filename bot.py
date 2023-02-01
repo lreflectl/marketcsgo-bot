@@ -12,7 +12,7 @@ class MarketBot:
     def __init__(self):
         self.items = []
         self.db_path = Path(__file__).parent.resolve() / 'bot_data.db'
-        self.TIME_GAP_BETWEEN_UPDATES = 10
+        self.TIME_GAP_BETWEEN_UPDATES = 9
 
     def update_items(self, items_from_api):
         fresh_items_dict = {item.item_id: item for item in items_from_api}
@@ -50,7 +50,7 @@ class MarketBot:
             print('FAIL - no item with given id')
             return
         if time.time() - item.last_update_time < self.TIME_GAP_BETWEEN_UPDATES:
-            print(f'PASS (cool-down) - the item had been already updated within {self.TIME_GAP_BETWEEN_UPDATES} secs')
+            print(f'PASS (cool-down) -', item)
             return
 
         if item.position > 1:
@@ -80,7 +80,6 @@ class MarketBot:
             item.last_update_time = time.time()
             print('OK -', item)
         else:
-            print(time.time() - item.last_update_time)
             print('FAIL -', item)
 
     def set_user_price_for_all_items(self):
