@@ -1,6 +1,7 @@
-from api_requests import get_items_on_sale_api
+from api_requests import get_items_on_sale_and_pending_api
 from api_requests import set_price_api
-from api_requests import  get_dict_of_items_lowest_prices_api
+from api_requests import get_dict_of_items_lowest_prices_api
+from api_requests import send_telegram_message
 from policies import price_update_policy
 from threading import Event, Thread
 from sqlite3 import connect
@@ -12,7 +13,7 @@ class MarketBot:
     def __init__(self):
         self.items = []
         self.db_path = Path(__file__).parent.resolve() / 'bot_data.db'
-        self.TIME_GAP_BETWEEN_UPDATES = 9
+        self.ITEM_UPDATE_COOL_DOWN_SECONDS = 9
 
     def update_items(self, items_from_api):
         fresh_items_dict = {item.item_id: item for item in items_from_api}
@@ -49,7 +50,7 @@ class MarketBot:
         if item is None:
             print('FAIL - no item with given id')
             return
-        if time.time() - item.last_update_time < self.TIME_GAP_BETWEEN_UPDATES:
+        if time.time() - item.last_update_time < self.ITEM_UPDATE_COOL_DOWN_SECONDS:
             print(f'PASS (cool-down) -', item)
             return
 
@@ -107,9 +108,9 @@ class MarketBot:
             if item.user_target_price == 0 or item.user_min_price == 0:
                 print('PASS (not set) -', item)
                 continue
-            if time.time() - item.last_update_time < self.TIME_GAP_BETWEEN_UPDATES:
+            if time.time() - item.last_update_time < self.ITEM_UPDATE_COOL_DOWN_SECONDS:
                 print(
-                    f'PASS (cool-down) - the item had been already updated within {self.TIME_GAP_BETWEEN_UPDATES} secs')
+                    f'PASS (cool-down) - the item had been already updated within {self.ITEM_UPDATE_COOL_DOWN_SECONDS} secs')
                 continue
 
             status = set_price_api(item.item_id, item.user_target_price)
@@ -176,10 +177,17 @@ class MarketBot:
 
 
 def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event):
+    pending_items = []
     timer = 0
     while True:
-        items_from_api = get_items_on_sale_api()
+        items_from_api, new_pending_items = get_items_on_sale_and_pending_api()
         market_bot.update_items(items_from_api)
+
+        for item in new_pending_items:
+            if item not in pending_items:
+                pending_items.append(item)
+                send_telegram_message(f"An Item was bought from you on MarketCSGO. To receive *{item.price/1000:.3f} "
+                                      f"{item.currency}* transfer _{item.market_hash_name}_ to the buyer.")
 
         item_ids = market_bot.get_item_ids()
         items_user_prices = market_bot.get_items_user_prices_from_db(item_ids)

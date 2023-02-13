@@ -1,6 +1,6 @@
 import unittest
 from api_requests import get_response_with_retries
-from api_requests import get_items_on_sale_api
+from api_requests import get_items_on_sale_and_pending_api
 from api_requests import set_price_api
 from api_requests import get_item_lowest_price_api
 from api_requests import get_item_lowest_price_v2_api
@@ -17,7 +17,7 @@ class TestApi(unittest.TestCase):
         self.assertEqual(good_response.status_code, 200)
 
     def test_get_items_on_sale_api(self):
-        response_items = get_items_on_sale_api()
+        response_items = get_items_on_sale_and_pending_api()
         self.assertTrue(response_items == [] or type(response_items[0]) == ItemOnSale)
 
     def test_set_price_api(self):
