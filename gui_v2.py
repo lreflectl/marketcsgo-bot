@@ -2,6 +2,7 @@ import customtkinter as ctk
 from bot import MarketBot, price_update_loop
 from threading import Thread, Event, Lock
 from prettytable import PrettyTable
+import time
 
 
 class MarketCSGOBotApp(ctk.CTk):
@@ -48,17 +49,19 @@ class MarketCSGOBotApp(ctk.CTk):
         self.updater_frame.grid(row=1, column=0, columnspan=3, padx=0, pady=(10, 10))
         self.updater_frame.grid_propagate(0)
 
-        self.stop_loop_button = ctk.CTkButton(self.updater_frame, command=self.stop_loop_thread, text='Stop', state='disabled')
+        self.stop_loop_button = ctk.CTkButton(self.updater_frame, command=self.stop_loop_thread, text='Stop',
+                                              state='disabled')
         self.stop_loop_button.grid(row=0, column=0, padx=(10, 0), pady=10)
 
-        self.start_loop_button = ctk.CTkButton(self.updater_frame, command=self.start_loop_thread, text='Start updating prices')
+        self.start_loop_button = ctk.CTkButton(self.updater_frame, command=self.start_loop_thread,
+                                               text='Start updating prices')
         self.start_loop_button.grid(row=0, column=1, padx=20, pady=10)
 
         self.loop_progressbar = ctk.CTkProgressBar(self.updater_frame, width=200, height=10, mode='indeterminate')
         self.loop_progressbar.grid(row=0, column=2, padx=0, pady=0)
 
         self.update_menu_and_list_button = ctk.CTkButton(self.updater_frame, command=self.update_item_menu_and_list,
-                                                         text='Update')
+                                                         text='Refresh list')
         self.update_menu_and_list_button.grid(row=0, column=3, padx=20, pady=10)
         # --------------------------
 
@@ -71,6 +74,7 @@ class MarketCSGOBotApp(ctk.CTk):
 
         self.stop_event = Event()
         self.finish_event = Event()
+        self.stopping_thread = None
 
         self.bot.initialize_db()
         self.finish_event.set()  # On app start update loop inactive, so finish is possible
@@ -80,33 +84,42 @@ class MarketCSGOBotApp(ctk.CTk):
         self.stop_loop_button.configure(state='normal')
         self.loop_progressbar.start()
 
-        self.stop_event.clear()
         self.finish_event.clear()
 
         worker_thread = Thread(
             target=price_update_loop, args=(self.bot, self.stop_event, self.finish_event))
         worker_thread.start()
 
-    def stop_loop_thread(self):
-        def turn_off_progressbar_and_buttons():
-            self.stop_event.set()
-            self.stop_loop_button.configure(state='disabled')
-            self.finish_event.wait()
-            self.start_loop_button.configure(state='normal')
-            self.loop_progressbar.stop()
+    def stop_update_loop_and_toggle_buttons(self):
+        self.stop_event.set()
+        self.stop_loop_button.configure(state='disabled')
+        self.update()
+        self.finish_event.wait()
+        self.start_loop_button.configure(state='normal')
+        self.loop_progressbar.stop()
+        print('stopping thread finished')
 
-        toggle_thread = Thread(target=turn_off_progressbar_and_buttons)
-        toggle_thread.start()
+    def stop_loop_thread(self):
+        self.stopping_thread = Thread(target=self.stop_update_loop_and_toggle_buttons)
+        self.stopping_thread.start()
 
     def update_item_menu_and_list(self):
         self.refresh_item_list()
         self.refresh_item_menu()
 
     # Wait until current iteration is completed, then destroy all widgets
-    def on_closing(self, event=0):
-        self.stop_event.set()
-        self.finish_event.wait()
-        self.destroy()
+    def on_closing(self):
+        if self.stopping_thread is None or not self.stopping_thread.is_alive():
+            self.stop_event.set()
+            self.finish_event.wait()
+            self.destroy()
+        else:
+            # If stopper thread is currently working then wait for it to finish
+            while self.stopping_thread.is_alive():
+                self.update_idletasks()
+                self.update()
+                time.sleep(0.04)
+            self.destroy()
 
     def save_input_prices(self):
         if not self.bot.items:
@@ -138,7 +151,8 @@ class MarketCSGOBotApp(ctk.CTk):
     def refresh_item_list(self):
         if not self.bot.items:
             self.items_textbox.delete('0.0', ctk.END)
-            self.items_textbox.insert('0.0', 'Items list empty or no internet connection')
+            self.items_textbox.insert('0.0', 'Items list empty or no internet connection \n'
+                                             'Start updating prices to get items list if available')
             return
 
         item_table = [['#', 'item_id', 'item title', 'current p.', 'pos', 'minimum', 'target']]

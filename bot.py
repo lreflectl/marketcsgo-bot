@@ -202,8 +202,8 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
 
         if stop_event.is_set():
             stop_event.clear()
-            print('Stopping price update loop...')
             finish_event.set()
+            print('Stopping price update loop...')
             break
 
         # sleep(1)  # Seconds to sleep on each loop iteration

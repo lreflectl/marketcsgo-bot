@@ -18,7 +18,7 @@ class TestApi(unittest.TestCase):
 
     def test_get_items_on_sale_api(self):
         response_items = get_items_on_sale_and_pending_api()
-        self.assertTrue(response_items == [] or type(response_items[0]) == ItemOnSale)
+        self.assertTrue(response_items == ([], []) or type(response_items[0][0]) == ItemOnSale)
 
     def test_set_price_api(self):
         status = set_price_api('wrong_id', 12345)
