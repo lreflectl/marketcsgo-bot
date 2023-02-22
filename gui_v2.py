@@ -3,6 +3,9 @@ from bot import MarketBot, price_update_loop
 from threading import Thread, Event, Lock
 from prettytable import PrettyTable
 import time
+from logging import getLogger
+
+logger = getLogger('market_bot')
 
 
 class MarketCSGOBotApp(ctk.CTk):
@@ -97,7 +100,7 @@ class MarketCSGOBotApp(ctk.CTk):
         self.finish_event.wait()
         self.start_loop_button.configure(state='normal')
         self.loop_progressbar.stop()
-        print('stopping thread finished')
+        logger.debug('stopping thread finished')
 
     def stop_loop_thread(self):
         self.stopping_thread = Thread(target=self.stop_update_loop_and_toggle_buttons)

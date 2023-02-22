@@ -5,6 +5,9 @@ from json.decoder import JSONDecodeError
 from dotenv import load_dotenv
 from os import getenv
 from data_structures import ItemOnSale
+from logging import getLogger
+
+logger = getLogger('market_bot')
 
 API_ITEM_STATUS = {
     'ON_SALE': '1',
@@ -29,11 +32,11 @@ def get_response_with_retries(request_url, max_retries, sleep_after_request=SLEE
             time.sleep(sleep_after_request)  # To not exceed limit of 5 requests/sec
             return response
         except RequestException as e:
-            # print('Error occurred while executing request:', e.response)
+            logger.debug(f'Error occurred while executing request: {e.response}')
             if attempt == max_retries:  # if it was last attempt
-                # print('Failed executing request.')
+                logger.debug('Failed executing request.')
                 return
-            # print('Retrying ...')
+            logger.debug('Retrying ...')
         time.sleep(sleep_on_retry)  # Wait more if exception occurred
 
 
@@ -52,12 +55,12 @@ def get_items_on_sale_and_pending_api() -> (list[ItemOnSale], list[ItemOnSale]):
 
     response = get_response_with_retries(request_url, max_retries)
     if response is None:
-        print('Failed on getting items on sale. Max attempts exceeded.')
+        logger.info('Failed on getting items on sale. Max attempts exceeded.')
         return [], []
 
     response_json = safe_json(response)
     if not response_json['success']:
-        print(f'Server fail on getting items on sale. Error message: {response_json["error"]}')
+        logger.info(f'Server fail on getting items on sale. Error message: {response_json["error"]}')
         return [], []
 
     # If there is no items on sale
@@ -95,12 +98,12 @@ def set_price_api(item_id: str, price: int) -> bool:
     # The market API allows
     response = get_response_with_retries(request_url, max_retries)
     if response is None:
-        print('Failed on setting price. Max attempts exceeded.')
+        logger.info('Failed on setting price. Max attempts exceeded.')
         return False
 
     response_json = safe_json(response)
     if not response_json['success']:
-        print(f'Server fail on setting price. Error message: {response_json["error"]}')
+        logger.info(f'Server fail on setting price. Error message: {response_json["error"]}')
         return False
 
     return True
@@ -113,19 +116,19 @@ def get_item_lowest_price_api(market_hash_name: str) -> int:
 
     response = get_response_with_retries(request_url, max_retries)
     if response is None:
-        print('Failed on getting price by name. Max attempts exceeded.')
+        logger.info('Failed on getting price by name. Max attempts exceeded.')
         return 0
 
     response_json = safe_json(response)
     if not response_json['success']:
-        print('Server fail on getting price by name.')
+        logger.info('Server fail on getting price by name.')
         return 0
 
     lowest_price = 0
     for item in response_json['items']:
         if item['market_hash_name'] == market_hash_name:
             lowest_price = int(float(item['price']) * 1000)
-            # print('lowest price from api =', lowest_price)
+            logger.debug(f'lowest price from api = {lowest_price}')
 
     return lowest_price
 
@@ -138,18 +141,18 @@ def get_item_lowest_price_v2_api(market_hash_name: str) -> int:
 
     response = get_response_with_retries(request_url, max_retries)
     if response is None:
-        print('Failed on getting price by name. Max attempts exceeded.')
+        logger.info('Failed on getting price by name. Max attempts exceeded.')
         return 0
 
     response_json = safe_json(response)
     if not response_json['success']:
-        print('Server fail on getting price by name.')
+        logger.info('Server fail on getting price by name.')
         return 0
 
     lowest_price = 0
     if response_json['data']:
         lowest_price = response_json['data'][0]['price']
-        # print('lowest price from api v2 =', lowest_price)
+        logger.debug(f'lowest price from api v2 = {lowest_price}')
 
     return lowest_price
 
@@ -164,12 +167,12 @@ def get_dict_of_items_lowest_prices_api(market_hash_names: list[str]) -> dict[st
 
     response = get_response_with_retries(request_url, max_retries)
     if response is None:
-        print('Failed on getting list of prices by name. Max attempts exceeded.')
+        logger.info('Failed on getting list of prices by name. Max attempts exceeded.')
         return {}
 
     response_json = safe_json(response)
     if not response_json['success']:
-        print('Server fail on getting list of prices by name.')
+        logger.info('Server fail on getting list of prices by name.')
         return {}
 
     lowest_prices = {}
@@ -190,7 +193,7 @@ def send_telegram_message(message: str) -> bool:
     response = get_response_with_retries(request_url, max_retries)
 
     if response is None:
-        print('Failed on sending telegram message. Max attempts exceeded.')
+        logger.info('Failed on sending telegram message. Max attempts exceeded.')
         return False
 
     response_json = safe_json(response)
@@ -198,7 +201,7 @@ def send_telegram_message(message: str) -> bool:
         if response_json['ok']:
             return True
 
-    print('Server fail on sending telegram message.')
+    logger.info('Server fail on sending telegram message.')
     return False
 
 

@@ -6,7 +6,10 @@ from policies import price_update_policy
 from threading import Event, Thread
 from sqlite3 import connect
 from pathlib import Path
+from logging import getLogger
 import time
+
+logger = getLogger('market_bot')
 
 
 class MarketBot:
@@ -39,7 +42,7 @@ class MarketBot:
 
     def set_user_price_for_item(self, item_id, min_price, target_price, lowest_price):
         if not self.items:
-            print('FAIL - item list empty')
+            logger.info('FAIL - item list empty')
             return
 
         item = None
@@ -48,10 +51,10 @@ class MarketBot:
                 item = itm
                 break
         if item is None:
-            print('FAIL - no item with given id')
+            logger.info('FAIL - no item with given id')
             return
         if time.time() - item.last_update_time < self.ITEM_UPDATE_COOL_DOWN_SECONDS:
-            print(f'PASS (cool-down) -', item)
+            logger.info(f'PASS (cool-down) - {item}')
             return
 
         if item.position > 1:
@@ -66,35 +69,35 @@ class MarketBot:
             new_price = item.price
 
         if new_price == item.price:
-            print('PASS -', item)
+            logger.info(f'PASS - {item}')
             return
         if new_price < min_price:
-            print('Policy Error -', item)
+            logger.info(f'Policy Error - {item}')
             return
         if target_price < min_price:
-            print('User input Error -', item)
+            logger.info(f'User input Error - {item}')
             return
 
         is_set = set_price_api(item.item_id, new_price)
         if is_set:
             item.price = new_price
             item.last_update_time = time.time()
-            print('OK -', item)
+            logger.info(f'OK - {item}')
         else:
-            print('FAIL -', item)
+            logger.info(f'FAIL - {item}')
 
     def set_user_price_for_all_items(self):
         if not self.items:
-            print('FAIL - item list empty')
+            logger.info('FAIL - item list empty')
             return
 
         lowest_prices_dict = get_dict_of_items_lowest_prices_api(self.get_hash_names())
         for item in self.items:
             if item.user_target_price == 0 or item.user_min_price == 0:
-                print('PASS (not set) -', item)
+                logger.info(f'PASS (not set) - {item}')
                 continue
             if item.market_hash_name not in lowest_prices_dict:
-                print('FAIL - could not get lowest price for item')
+                logger.info('FAIL - could not get lowest price for item')
                 continue
 
             lowest_price = lowest_prices_dict[item.market_hash_name]
@@ -102,24 +105,24 @@ class MarketBot:
 
     def set_target_price_for_items(self):
         if not self.items:
-            print('FAIL - item list empty')
+            logger.info('FAIL - item list empty')
             return
         for item in self.items:
             if item.user_target_price == 0 or item.user_min_price == 0:
-                print('PASS (not set) -', item)
+                logger.info(f'PASS (not set) - {item}')
                 continue
             if time.time() - item.last_update_time < self.ITEM_UPDATE_COOL_DOWN_SECONDS:
-                print(
-                    f'PASS (cool-down) - the item had been already updated within {self.ITEM_UPDATE_COOL_DOWN_SECONDS} secs')
+                logger.info(f'PASS (cool-down) - the item had been already'
+                            f' updated within {self.ITEM_UPDATE_COOL_DOWN_SECONDS} secs')
                 continue
 
             status = set_price_api(item.item_id, item.user_target_price)
             if status:
                 item.price = item.user_target_price
                 item.last_update_time = time.time()
-                print('OK -', item)
+                logger.info(f'OK - {item}')
             else:
-                print('FAIL -', item)
+                logger.info(f'FAIL - {item}')
 
     def initialize_db(self):
         connection = connect(self.db_path)
@@ -173,7 +176,7 @@ class MarketBot:
                 user_prices = user_prices_dict[item.item_id]
                 item.user_min_price = user_prices[0]
                 item.user_target_price = user_prices[1]
-        # print('updated user prices from db')
+        logger.debug('updated user prices from db')
 
 
 def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Event):
@@ -186,8 +189,11 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
         for item in new_pending_items:
             if item not in pending_items:
                 pending_items.append(item)
-                send_telegram_message(f"An Item was bought from you on MarketCSGO. To receive *{item.price/1000:.3f} "
-                                      f"{item.currency}* transfer _{item.market_hash_name}_ to the buyer.")
+                is_sent = send_telegram_message(f"An Item was bought from you on MarketCSGO. "
+                                                f"To receive *{item.price / 1000:.3f} "
+                                                f"{item.currency}* transfer _{item.market_hash_name}_ to the buyer.")
+                if not is_sent:
+                    logger.info("Telegram message was not sent")
 
         item_ids = market_bot.get_item_ids()
         items_user_prices = market_bot.get_items_user_prices_from_db(item_ids)
@@ -203,10 +209,8 @@ def price_update_loop(market_bot: MarketBot, stop_event: Event, finish_event: Ev
         if stop_event.is_set():
             stop_event.clear()
             finish_event.set()
-            print('Stopping price update loop...')
+            logger.info('Stopping price update loop...')
             break
-
-        # sleep(1)  # Seconds to sleep on each loop iteration
 
 
 def main():
