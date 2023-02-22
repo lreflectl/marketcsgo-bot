@@ -94,7 +94,7 @@ class MarketBot:
         lowest_prices_dict = get_dict_of_items_lowest_prices_api(self.get_hash_names())
         for item in self.items:
             if item.user_target_price == 0 or item.user_min_price == 0:
-                logger.info(f'PASS (not set) - {item}')
+                logger.info(f'PASS (unset) - {item}')
                 continue
             if item.market_hash_name not in lowest_prices_dict:
                 logger.info('FAIL - could not get lowest price for item')
@@ -109,7 +109,7 @@ class MarketBot:
             return
         for item in self.items:
             if item.user_target_price == 0 or item.user_min_price == 0:
-                logger.info(f'PASS (not set) - {item}')
+                logger.info(f'PASS (unset) - {item}')
                 continue
             if time.time() - item.last_update_time < self.ITEM_UPDATE_COOL_DOWN_SECONDS:
                 logger.info(f'PASS (cool-down) - the item had been already'

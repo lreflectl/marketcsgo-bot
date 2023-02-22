@@ -1,11 +1,19 @@
 from gui_v2 import MarketCSGOBotApp
-from logging import getLogger, StreamHandler
+import logging
+
+
+def setup_logging():
+    logger = logging.getLogger('market_bot')
+    console_handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%y-%m-%d %H:%M:%S')
+
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    logger.setLevel('INFO')
+
 
 # Application entrypoint
 if __name__ == '__main__':
-    logger = getLogger('market_bot')
-    logger.addHandler(StreamHandler())
-    logger.setLevel('INFO')
-
+    setup_logging()
     app = MarketCSGOBotApp()
     app.mainloop()
