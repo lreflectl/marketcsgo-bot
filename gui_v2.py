@@ -50,7 +50,7 @@ class MarketCSGOBotApp(ctk.CTk):
         # ----- Updater frame -----
         self.updater_frame = ctk.CTkFrame(self, width=700, height=50)
         self.updater_frame.grid(row=1, column=0, columnspan=3, padx=0, pady=(10, 10))
-        self.updater_frame.grid_propagate(0)
+        self.updater_frame.grid_propagate(False)
 
         self.stop_loop_button = ctk.CTkButton(self.updater_frame, command=self.stop_loop_thread, text='Stop',
                                               state='disabled')

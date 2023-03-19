@@ -19,7 +19,7 @@ API_ITEM_STATUS = {
 load_dotenv()
 
 SLEEP_AFTER_REQUEST = 0.42
-SLEEP_ON_RETRY = 2
+SLEEP_ON_RETRY = 1
 REQUEST_TIMEOUT = 8
 
 
@@ -45,6 +45,8 @@ def safe_json(response: Response) -> dict:
     try:
         return response.json()
     except JSONDecodeError as e:
+        # Pause to prevent spamming on a server fail
+        time.sleep(SLEEP_ON_RETRY)
         return {'success': False, 'error': f'Invalid json body from server, {e.msg}.'}
 
 
