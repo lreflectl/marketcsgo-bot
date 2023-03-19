@@ -60,7 +60,8 @@ def get_items_on_sale_and_pending_api() -> (list[ItemOnSale], list[ItemOnSale]):
 
     response_json = safe_json(response)
     if not response_json['success']:
-        logger.info(f'Server fail on getting items on sale. Error message: {response_json["error"]}')
+        error_msg = response_json['error'] if 'error' in response_json else 'no message'
+        logger.info(f'Server fail on getting items on sale. Error message: {error_msg}')
         return [], []
 
     # If there is no items on sale
@@ -103,7 +104,8 @@ def set_price_api(item_id: str, price: int) -> bool:
 
     response_json = safe_json(response)
     if not response_json['success']:
-        logger.info(f'Server fail on setting price. Error message: {response_json["error"]}')
+        error_msg = response_json['error'] if 'error' in response_json else 'no message'
+        logger.info(f'Server fail on setting price. Error message: {error_msg}')
         return False
 
     return True
@@ -188,7 +190,7 @@ def get_dict_of_items_lowest_prices_api(market_hash_names: list[str]) -> dict[st
 def send_telegram_message(message: str) -> bool:
     request_url = f'https://api.telegram.org/bot{getenv("TELEGRAM_BOT_TOKEN")}/sendMessage?' \
                   f'chat_id={getenv("TELEGRAM_CHAT_ID")}&text={message}&parse_mode=Markdown'
-    max_retries = 1
+    max_retries = 3
 
     response = get_response_with_retries(request_url, max_retries)
 
